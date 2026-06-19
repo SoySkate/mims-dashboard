@@ -120,10 +120,22 @@ Active (calendar-visible / overlap-counting) states are `confirmado` and
 `negocios` (tenants), `users` (own, F1), `reservas`, `servicios`, `profesionales`,
 `profesional_servicios`, `historial` (WhatsApp log), `agent_alerts` (escalations, no FK).
 
-## Deployment (future, do last)
+## Deployment (Hetzner + Docker, behind existing Caddy)
 
-Self-hosted **VPS on Hetzner** with auto-deploy on git push (NOT Vercel). Connect to
-Postgres with pooler + SSL as appropriate. Not set up yet.
+Self-hosted VPS on Hetzner (NOT Vercel). Chatwoot already runs there in its own
+docker-compose with Caddy; Caddy reverse-proxies `dashboard.mims.studio` → `127.0.0.1:3001`.
+
+- `Dockerfile` — multi-stage, `node:24-alpine`, Next.js **standalone** output
+  (`next.config.ts: output "standalone"`), non-root. Build uses placeholder env (all routes
+  are dynamic, so the build connects to nothing); real values come from the container env.
+- `docker-compose.prod.yml` — builds the image, publishes **`127.0.0.1:3001:3000`** (3000 is
+  Chatwoot), `env_file: .env`, restart unless-stopped, healthcheck on `/login`. **No Postgres**
+  — production uses an EXTERNAL DB via `DATABASE_URL` (a test DB first, then the real one).
+- `.env` on the server (git-ignored, created by hand) needs: `DATABASE_URL`, `SESSION_SECRET`,
+  `CHATWOOT_BASE_URL`, `CHATWOOT_TOKEN`. (`NODE_ENV`/`PORT`/`HOSTNAME` are set in the compose.)
+- Deploy: `git pull` → `docker compose -f docker-compose.prod.yml up -d --build`.
+- Cookies: `session.ts` sets `secure` only when `NODE_ENV==='production'`; TLS is terminated at
+  Caddy. Not set up on the box yet beyond these files.
 
 ## Current status
 
