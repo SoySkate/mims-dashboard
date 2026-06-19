@@ -122,20 +122,43 @@ Active (calendar-visible / overlap-counting) states are `confirmado` and
 
 ## Deployment (Hetzner + Docker, behind existing Caddy)
 
-Self-hosted VPS on Hetzner (NOT Vercel). Chatwoot already runs there in its own
-docker-compose with Caddy; Caddy reverse-proxies `dashboard.mims.studio` → `127.0.0.1:3001`.
+Self-hosted VPS on Hetzner (NOT Vercel). **LIVE at https://dashboard.mims.studio**, on the
+same server as Chatwoot (`inbox.mims.studio`).
+
+### Image / compose (in repo)
 
 - `Dockerfile` — multi-stage, `node:24-alpine`, Next.js **standalone** output
   (`next.config.ts: output "standalone"`), non-root. Build uses placeholder env (all routes
   are dynamic, so the build connects to nothing); real values come from the container env.
-- `docker-compose.prod.yml` — builds the image, publishes **`127.0.0.1:3001:3000`** (3000 is
-  Chatwoot), `env_file: .env`, restart unless-stopped, healthcheck on `/login`. **No Postgres**
-  — production uses an EXTERNAL DB via `DATABASE_URL` (a test DB first, then the real one).
-- `.env` on the server (git-ignored, created by hand) needs: `DATABASE_URL`, `SESSION_SECRET`,
-  `CHATWOOT_BASE_URL`, `CHATWOOT_TOKEN`. (`NODE_ENV`/`PORT`/`HOSTNAME` are set in the compose.)
-- Deploy: `git pull` → `docker compose -f docker-compose.prod.yml up -d --build`.
-- Cookies: `session.ts` sets `secure` only when `NODE_ENV==='production'`; TLS is terminated at
-  Caddy. Not set up on the box yet beyond these files.
+- `docker-compose.prod.yml` — builds the image, container `mims_dashboard`, publishes
+  **`127.0.0.1:3001:3000`** (3000 is Chatwoot), `env_file: .env`, restart unless-stopped,
+  healthcheck on `/login`, joins the **external** docker network `mims-dashboard-net`.
+  **No Postgres** — uses an EXTERNAL DB via `DATABASE_URL`.
+- `.env` on the server (git-ignored, by hand): `DATABASE_URL`, `SESSION_SECRET`,
+  `CHATWOOT_BASE_URL`, `CHATWOOT_TOKEN`. (`NODE_ENV`/`PORT`/`HOSTNAME` set in the compose.)
+- `package-lock.json` was regenerated inside `node:24-alpine` so `npm ci` works there
+  (Windows-generated lock omitted linux-musl `@emnapi/*` nested deps).
+
+### Deployed state (DONE)
+
+- Repo cloned at `/opt/mims-dashboard`, pulled via a read-only SSH **deploy key**
+  (`~/.ssh/dashboard_deploy`). Deploy is **manual**: `git pull` →
+  `docker compose -f docker-compose.prod.yml up -d --build`.
+- **DB is a DEV/TEST copy**, not real production: Postgres container `mims-dashboard-db` on
+  docker network `mims-dashboard-net`, loaded with `db/extensions.sql` + `db/dump.sql` +
+  `db/users.sql` + `db/users-seed.sql` (demo logins `<slug>@demo.mims` / `demo1234`).
+- Caddy: Chatwoot's Caddy (`mims-chatwoot-caddy-1`) was joined to `mims-dashboard-net`; its
+  Caddyfile got a `dashboard.mims.studio` block → `reverse_proxy mims_dashboard:3000`
+  (reached over the shared docker network). Automatic HTTPS works.
+- Cookies: `session.ts` sets `secure` only in production; TLS terminated at Caddy.
+
+### Pending (to reach REAL production)
+
+- Point `DATABASE_URL` at the **real `mims_app` DB** (it lives on the OTHER server,
+  `core.mims.studio`) instead of the test DB.
+- Create the `users` table in `mims_app` + real per-client users (not demo logins).
+- Solve network access between `inbox` and `core` for that DB connection.
+- Auto-deploy on push (GitHub Actions) — currently manual.
 
 ## Current status
 
