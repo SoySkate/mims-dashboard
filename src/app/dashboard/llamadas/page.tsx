@@ -160,7 +160,7 @@ function Bubble({ m }: { m: ThreadMessage }) {
   return (
     <div className={`flex flex-col ${isIn ? "items-start" : "items-end"}`}>
       <div
-        className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm text-text ${
+        className={`max-w-[80%] overflow-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere] rounded-2xl px-3 py-2 text-sm text-text ${
           isIn ? "rounded-bl-sm bg-elevated" : "rounded-br-sm bg-accent/20"
         }`}
       >

@@ -167,7 +167,7 @@ function Bubble({ m }: { m: ThreadMessage }) {
     <div className={`flex flex-col ${isIn ? "items-start" : "items-end"}`}>
       {m.private && <span className="px-1 text-[10px] text-secondary">nota interna</span>}
       <div
-        className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm text-text ${
+        className={`max-w-[80%] overflow-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere] rounded-2xl px-3 py-2 text-sm text-text ${
           m.private
             ? "border border-border bg-elevated"
             : isIn
