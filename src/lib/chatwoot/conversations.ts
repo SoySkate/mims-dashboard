@@ -11,6 +11,7 @@ type RawConversation = {
   last_activity_at?: number; // epoch seconds
   messages?: RawMessage[];
   meta?: { sender?: RawSender };
+  custom_attributes?: Record<string, unknown>; // e.g. call cost/duration/agent set by n8n
 };
 type ConversationsResponse = { data?: { payload?: RawConversation[] }; payload?: RawConversation[] };
 
@@ -22,9 +23,13 @@ export type ConversationSummary = {
   lastMessage: string;
   lastActivityAt: number; // epoch seconds
   unread: number;
+  customAttributes: Record<string, unknown> | null; // null when absent (e.g. WhatsApp convos)
 };
 
 const ACTIVE_STATUSES = ["open", "pending"] as const;
+// Call transcripts in the "Llamadas" inbox can be in any state (often resolved), so that
+// screen passes the full set. Mensajes keeps the default (active only).
+export const ALL_STATUSES = ["open", "pending", "resolved", "snoozed"] as const;
 
 async function fetchByStatus(accountId: string | number, inboxId: number, status: string) {
   const data = await chatwootFetch<ConversationsResponse>(
@@ -41,8 +46,9 @@ async function fetchByStatus(accountId: string | number, inboxId: number, status
 export async function listConversations(
   accountId: string | number,
   inboxId: number,
+  statuses: readonly string[] = ACTIVE_STATUSES,
 ): Promise<ConversationSummary[]> {
-  const batches = await Promise.all(ACTIVE_STATUSES.map((s) => fetchByStatus(accountId, inboxId, s)));
+  const batches = await Promise.all(statuses.map((s) => fetchByStatus(accountId, inboxId, s)));
   const raw = batches.flat();
 
   const summaries = raw.map((c): ConversationSummary => {
@@ -56,6 +62,8 @@ export async function listConversations(
       lastMessage: (last?.content ?? "").trim(),
       lastActivityAt: c.last_activity_at ?? 0,
       unread: c.unread_count ?? 0,
+      customAttributes:
+        c.custom_attributes && Object.keys(c.custom_attributes).length > 0 ? c.custom_attributes : null,
     };
   });
 

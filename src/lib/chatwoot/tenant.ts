@@ -44,3 +44,24 @@ export async function getNegocioChatwoot(negocioId: string): Promise<NegocioChat
 
   return { accountId: row.accountId, inboxId };
 }
+
+/**
+ * Resolve the Chatwoot account + "Llamadas" inbox (Retell call transcripts, posted by an
+ * external n8n flow) for ONE negocio. Same account as WhatsApp; only the inbox differs and
+ * it is NOT auto-detected (n8n owns it) — it must be set in negocios.chatwoot_inbox_id_llamadas.
+ * Returns null when not configured. accountId comes from the session only.
+ */
+export async function getNegocioChatwootCalls(negocioId: string): Promise<NegocioChatwoot | null> {
+  if (!isChatwootConfigured()) return null;
+
+  const row = (
+    await db
+      .select({ accountId: negocios.chatwootAccountId, inboxId: negocios.chatwootInboxIdLlamadas })
+      .from(negocios)
+      .where(eq(negocios.id, negocioId))
+      .limit(1)
+  )[0];
+
+  if (!row?.accountId || !row.inboxId) return null;
+  return { accountId: row.accountId, inboxId: Number(row.inboxId) };
+}
