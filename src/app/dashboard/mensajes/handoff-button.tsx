@@ -29,16 +29,16 @@ export function HandoffButton({ conversationId, status }: { conversationId: numb
       <button
         onClick={toggle}
         disabled={pending}
-        className={`rounded-md border px-2.5 py-1 text-xs font-medium disabled:opacity-50 ${
+        className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
           isHuman
-            ? "border-amber-300 text-amber-700 hover:bg-amber-50"
-            : "border-blue-300 text-blue-700 hover:bg-blue-50"
+            ? "border-accent/40 text-accent hover:bg-accent/10"
+            : "border-secondary/50 text-secondary hover:bg-secondary/10"
         }`}
         title={isHuman ? "Devolver la conversación al bot" : "Silenciar el bot y atender tú"}
       >
         {pending ? "…" : isHuman ? "Activar bot" : "Atender yo"}
       </button>
-      {error && <span className="mt-0.5 text-[10px] text-red-600">{error}</span>}
+      {error && <span className="mt-0.5 text-[10px] text-danger">{error}</span>}
     </div>
   );
 }

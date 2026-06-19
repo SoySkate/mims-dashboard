@@ -64,6 +64,20 @@ export async function listConversations(
 }
 
 /**
+ * Mark a conversation as read for the agent (resets Chatwoot's unread_count). Without this,
+ * the dashboard reads messages but never tells Chatwoot "seen", so unread piles up.
+ * accountId MUST be the session account (foreign conv → 404).
+ */
+export async function markConversationRead(
+  accountId: string | number,
+  conversationId: number | string,
+): Promise<void> {
+  await chatwootFetch(`/accounts/${accountId}/conversations/${conversationId}/update_last_seen`, {
+    method: "POST",
+  });
+}
+
+/**
  * Handoff: set a conversation's status explicitly via Chatwoot's toggle_status.
  * open = a human took over (the n8n bot stays quiet); pending = the bot answers again.
  * Same mechanism the n8n Motor uses. accountId MUST be the session account (foreign conv → 404).

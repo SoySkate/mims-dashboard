@@ -57,6 +57,41 @@ Two data sources:
 - "Live" = polling (`Poller`, 10s), no websockets in v1. Handoff = conversation `status`
   (open = human/bot quiet, pending = bot answers); `negocios.agente_activo` left separate.
 
+## Design system (mims brand)
+
+Visual redesign with **design tokens**, theme-ready (dark active, light wired but no toggle yet).
+
+- **Tokens** in `src/app/globals.css` (Tailwind v4 CSS-first). Semantic CSS vars per theme:
+  `--bg, --surface, --elevated, --text, --muted, --accent, --accent-strong, --on-accent,
+  --secondary, --border, --danger`. `@theme inline` maps them to utilities
+  (`bg-bg`, `bg-surface`, `text-text`, `text-muted`, `text-accent`, `border-border`, …).
+  **Use the semantic utilities, NEVER raw hex** — a future light toggle just flips
+  `html[data-theme]` (dark set on `:root`/`[data-theme="dark"]`, light set on `[data-theme="light"]`).
+- **Brand palette:** Plomo `#1D1F1C` (bg) · Crema `#EBE5D3` (text) · Ámbar `#D4923A` (accent,
+  sparingly) · Caqui `#8A9A5B` (secondary) · Piedra `#5E5D56` (muted/border).
+- **Fonts** (next/font, `src/app/layout.tsx`): Bricolage Grotesque → `font-display` (titles,
+  tight tracking), Manrope → `font-sans` (body/UI), JetBrains Mono → `.label-mono` (small
+  uppercase metadata labels).
+- **Responsive** (in progress, screen by screen): everything must work on mobile. Mensajes on
+  mobile = list first, tap → full-screen thread with a back button (WhatsApp-style). Calendar
+  on mobile = day/agenda view.
+- **Redesign status:** base tokens + fonts DONE; **Login DONE**; **Dashboard home DONE**
+  (shared `dashboard/layout.tsx` header + nav restyled, `nav-links.tsx` active-tab highlight,
+  counters page). **Mensajes mobile pattern DONE** (WhatsApp-style: `<md` shows list XOR
+  thread based on `?conv`, with a back link; `md+` keeps two columns). Legibility fixes applied
+  (chat input + page titles use tokens). **Calendario DONE** (token restyle + FullCalendar
+  themed via `--fc-*`/`.fc-*` overrides in globals.css, compact stacked toolbar on phones,
+  default day view on mobile, "Nueva reserva" modal restyled with legible dark inputs).
+  **Mensajes DONE** (list/thread cards, bubbles incoming=elevated / outgoing=accent tint,
+  status badges, reply box + handoff button all tokenized; 0 raw gray classes left).
+  **Redesign COMPLETE** — all screens (login, dashboard home, calendario, mensajes) on the
+  token system. **Light/dark toggle ACTIVE** (`theme-toggle.tsx` in the dashboard header;
+  persists to `localStorage`, default dark; an inline boot script in `layout.tsx` sets
+  `html[data-theme]` before paint, `suppressHydrationWarning` on `<html>`).
+- **Unread badge:** the conversation-list number is Chatwoot `unread_count`. Opening a
+  conversation now calls `markConversationRead` (POST `update_last_seen`) and zeros the badge
+  locally — without it the count piled up because the dashboard never told Chatwoot "seen".
+
 ## Multi-tenancy (CRITICAL — security)
 
 Every query MUST be scoped by the `negocio_id` taken from the authenticated session.

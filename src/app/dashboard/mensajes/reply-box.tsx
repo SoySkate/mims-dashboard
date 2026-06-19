@@ -26,8 +26,8 @@ export function ReplyBox({ conversationId }: { conversationId: number }) {
   }
 
   return (
-    <div className="border-t border-gray-200 p-3">
-      {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
+    <div className="border-t border-border p-3">
+      {error && <p className="mb-2 text-xs text-danger">{error}</p>}
       <div className="flex items-end gap-2">
         <textarea
           value={content}
@@ -41,12 +41,12 @@ export function ReplyBox({ conversationId }: { conversationId: number }) {
           }}
           rows={1}
           placeholder="Escribe una respuesta…"
-          className="max-h-32 min-h-[38px] flex-1 resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+          className="max-h-32 min-h-[38px] flex-1 resize-none rounded-lg border border-border bg-elevated px-3 py-2 text-sm text-text placeholder-muted outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
         />
         <button
           onClick={send}
           disabled={pending || !content.trim()}
-          className="h-[38px] shrink-0 rounded-md bg-gray-900 px-4 text-sm font-medium text-white disabled:opacity-50"
+          className="h-[38px] shrink-0 rounded-lg bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-strong disabled:opacity-50"
         >
           {pending ? "…" : "Enviar"}
         </button>

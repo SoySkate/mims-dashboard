@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getNegocioId } from "@/lib/auth/dal";
 import { getNegocioChatwoot } from "@/lib/chatwoot/tenant";
-import { listConversations } from "@/lib/chatwoot/conversations";
+import { listConversations, markConversationRead } from "@/lib/chatwoot/conversations";
 import { getThread, type ThreadMessage } from "@/lib/chatwoot/messages";
 import { ChatwootError } from "@/lib/chatwoot/client";
 import { Poller } from "./poller";
@@ -19,8 +19,8 @@ export default async function MensajesPage({
   if (!cfg) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-semibold text-gray-900">Mensajes de WhatsApp</h1>
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
+        <h1 className="font-display text-xl font-bold text-text">Mensajes de WhatsApp</h1>
+        <div className="rounded-xl border border-dashed border-border bg-surface p-6 text-sm text-muted">
           WhatsApp no está configurado para este negocio en Chatwoot.
         </div>
       </div>
@@ -38,6 +38,13 @@ export default async function MensajesPage({
   if (activeId) {
     try {
       thread = await getThread(cfg.accountId, activeId);
+      // Opening it = the agent saw it: reset Chatwoot's unread counter, and zero the badge
+      // locally so the list reflects it immediately (don't fail the page if this errors).
+      try {
+        await markConversationRead(cfg.accountId, activeId);
+        const c = conversations.find((x) => x.id === activeId);
+        if (c) c.unread = 0;
+      } catch {}
     } catch (e) {
       if (e instanceof ChatwootError && e.status === 404) notFound = true;
       else throw e;
@@ -48,31 +55,37 @@ export default async function MensajesPage({
   return (
     <div className="flex flex-col gap-4">
       <Poller />
-      <h1 className="text-lg font-semibold text-gray-900">Mensajes de WhatsApp</h1>
+      <h1 className="font-display text-xl font-bold text-text">Mensajes de WhatsApp</h1>
 
       {conversations.length === 0 ? (
-        <p className="text-sm text-gray-500">No hay conversaciones activas.</p>
+        <p className="text-sm text-muted">No hay conversaciones activas.</p>
       ) : (
-        <div className="flex h-[70vh] gap-4">
-          <ul className="w-72 shrink-0 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+        <div className="flex h-[78vh] gap-0 md:h-[70vh] md:gap-4">
+          {/* Mobile (WhatsApp-style): list when no conv selected, thread when one is.
+              Desktop (md+): both columns always. */}
+          <ul
+            className={`${conv ? "hidden" : "block"} w-full shrink-0 overflow-y-auto rounded-xl border border-border bg-surface md:block md:w-72`}
+          >
             {conversations.map((c) => {
               const active = c.id === activeId;
               return (
                 <li key={c.id}>
                   <Link
                     href={`/dashboard/mensajes?conv=${c.id}`}
-                    className={`block border-b border-gray-100 px-3 py-2.5 ${active ? "bg-gray-100" : "hover:bg-gray-50"}`}
+                    className={`block border-b border-border px-3 py-2.5 transition-colors ${
+                      active ? "bg-elevated" : "hover:bg-elevated/50"
+                    }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-medium text-gray-900">
+                      <span className="truncate text-sm font-medium text-text">
                         {c.name || c.phone || `#${c.id}`}
                       </span>
                       <StatusBadge status={c.status} />
                     </div>
                     <div className="mt-0.5 flex items-center justify-between gap-2">
-                      <span className="truncate text-xs text-gray-500">{c.lastMessage || "—"}</span>
+                      <span className="truncate text-xs text-muted">{c.lastMessage || "—"}</span>
                       {c.unread > 0 && (
-                        <span className="shrink-0 rounded-full bg-green-600 px-1.5 text-[10px] text-white">
+                        <span className="shrink-0 rounded-full bg-accent px-1.5 text-[10px] font-semibold text-on-accent">
                           {c.unread}
                         </span>
                       )}
@@ -83,13 +96,24 @@ export default async function MensajesPage({
             })}
           </ul>
 
-          <div className="flex min-w-0 flex-1 flex-col rounded-lg border border-gray-200 bg-white">
-            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2.5">
-              <div>
-                <div className="text-sm font-medium text-gray-900">
-                  {activeConvo?.name || activeConvo?.phone || (activeId ? `#${activeId}` : "—")}
+          <div
+            className={`${conv ? "flex" : "hidden"} min-w-0 flex-1 flex-col rounded-xl border border-border bg-surface md:flex`}
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+              <div className="flex min-w-0 items-center gap-2">
+                <Link
+                  href="/dashboard/mensajes"
+                  aria-label="Volver a la lista"
+                  className="-ml-1 rounded p-1 text-muted hover:text-text md:hidden"
+                >
+                  ←
+                </Link>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-text">
+                    {activeConvo?.name || activeConvo?.phone || (activeId ? `#${activeId}` : "—")}
+                  </div>
+                  <div className="text-xs text-muted">{activeConvo?.phone}</div>
                 </div>
-                <div className="text-xs text-gray-400">{activeConvo?.phone}</div>
               </div>
               {activeConvo && (
                 <div className="flex items-center gap-2">
@@ -98,9 +122,9 @@ export default async function MensajesPage({
                 </div>
               )}
             </div>
-            <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
+            <div className="flex flex-1 flex-col gap-2 overflow-y-auto bg-bg/40 p-4">
               {notFound ? (
-                <p className="m-auto text-sm text-gray-400">Conversación no encontrada.</p>
+                <p className="m-auto text-sm text-muted">Conversación no encontrada.</p>
               ) : (
                 thread.map((m) => <Bubble key={m.id} m={m} />)
               )}
@@ -115,10 +139,11 @@ export default async function MensajesPage({
 
 function StatusBadge({ status }: { status: string }) {
   const open = status === "open";
+  // open = human handling (caqui/secondary); pending = bot active (amber/accent).
   return (
     <span
       className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${
-        open ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"
+        open ? "bg-secondary/20 text-secondary" : "bg-accent/15 text-accent"
       }`}
       title={open ? "Atendida por humano" : "Bot activo"}
     >
@@ -130,25 +155,29 @@ function StatusBadge({ status }: { status: string }) {
 function Bubble({ m }: { m: ThreadMessage }) {
   if (m.direction === "activity") {
     return (
-      <div className="self-center rounded bg-gray-100 px-2 py-1 text-center text-[11px] text-gray-500">
+      <div className="self-center rounded bg-elevated px-2 py-1 text-center text-[11px] text-muted">
         {m.content}
       </div>
     );
   }
   const isIn = m.direction === "in";
   const body =
-    m.content || (m.attachments.length > 0 ? "🎤 audio / adjunto" : <span className="text-gray-400">(vacío)</span>);
+    m.content || (m.attachments.length > 0 ? "🎤 audio / adjunto" : <span className="text-muted">(vacío)</span>);
   return (
     <div className={`flex flex-col ${isIn ? "items-start" : "items-end"}`}>
-      {m.private && <span className="px-1 text-[10px] text-amber-600">nota interna</span>}
+      {m.private && <span className="px-1 text-[10px] text-secondary">nota interna</span>}
       <div
-        className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm ${
-          m.private ? "bg-amber-50 text-gray-900" : isIn ? "bg-gray-100 text-gray-900" : "bg-green-100 text-gray-900"
+        className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm text-text ${
+          m.private
+            ? "border border-border bg-elevated"
+            : isIn
+              ? "rounded-bl-sm bg-elevated"
+              : "rounded-br-sm bg-accent/20"
         }`}
       >
         {body}
       </div>
-      <span className="mt-0.5 px-1 text-[10px] text-gray-400">{fmtTime(m.createdAt)}</span>
+      <span className="mt-0.5 px-1 text-[10px] text-muted">{fmtTime(m.createdAt)}</span>
     </div>
   );
 }

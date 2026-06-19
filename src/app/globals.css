@@ -1,26 +1,180 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+  mims design system — semantic tokens (not raw colours).
+  Brand palette: Plomo #1D1F1C · Crema #EBE5D3 · Ámbar #D4923A · Caqui #8A9A5B · Piedra #5E5D56.
+
+  Structure is theme-ready: every semantic token is a CSS variable defined per theme below.
+  Dark is the only ACTIVE theme (html[data-theme="dark"]); the light set exists and is wired,
+  waiting for a future toggle that flips data-theme. Components must use the semantic
+  utilities (bg-bg, bg-surface, text-text, text-muted, text-accent, border-border, …),
+  never raw hex, so a theme switch needs zero component changes.
+*/
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
+  --color-secondary: var(--secondary);
+  --color-border: var(--border);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-manrope), sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ---- DARK (active) ---- */
+:root,
+[data-theme="dark"] {
+  --bg: #1d1f1c; /* plomo */
+  --surface: #232520; /* cards / panels */
+  --elevated: #2b2d27; /* inputs / hover surfaces */
+  --text: #ebe5d3; /* crema */
+  --muted: #a3a096; /* secondary text (lightened piedra) */
+  --accent: #d4923a; /* ámbar — use sparingly */
+  --accent-strong: #e1a152; /* amber hover */
+  --on-accent: #1d1f1c; /* text on amber */
+  --secondary: #8a9a5b; /* caqui */
+  --border: #34362e; /* subtle warm border */
+  --danger: #d98a6a;
+  color-scheme: dark;
+}
+
+/* ---- LIGHT (ready, not yet activated by any toggle) ---- */
+[data-theme="light"] {
+  --bg: #ebe5d3; /* crema */
+  --surface: #f3eee1;
+  --elevated: #fbf8f0;
+  --text: #1d1f1c; /* plomo */
+  --muted: #5e5d56; /* piedra */
+  --accent: #d4923a;
+  --accent-strong: #c07f2a;
+  --on-accent: #1d1f1c;
+  --secondary: #8a9a5b;
+  --border: #d8d1bf;
+  --danger: #b4543a;
+  color-scheme: light;
+}
+
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+  }
+  ::selection {
+    background: var(--accent);
+    color: var(--on-accent);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Display headings: Bricolage, tight tracking. */
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  /* Small technical labels / metadata: JetBrains Mono, uppercase, spaced. */
+  .label-mono {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    font-size: 0.66rem;
+    color: var(--muted);
+  }
+}
+
+/* ---- FullCalendar: themed with mims tokens, compact (Google-Calendar-ish) ---- */
+.fc {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: var(--elevated);
+  --fc-list-event-hover-bg-color: var(--elevated);
+  --fc-today-bg-color: color-mix(in srgb, var(--accent) 14%, transparent);
+  --fc-now-indicator-color: var(--accent);
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.fc a {
+  color: inherit;
+  text-decoration: none;
+}
+.fc .fc-toolbar-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.fc .fc-col-header-cell-cushion,
+.fc .fc-daygrid-day-number,
+.fc .fc-timegrid-slot-label-cushion,
+.fc .fc-timegrid-axis-cushion,
+.fc .fc-list-day-text,
+.fc .fc-list-day-side-text {
+  color: var(--muted);
+}
+.fc-theme-standard td,
+.fc-theme-standard th,
+.fc-theme-standard .fc-scrollgrid {
+  border-color: var(--border);
+}
+
+/* Toolbar buttons -> token-styled, amber when active */
+.fc .fc-button-primary {
+  background: var(--elevated);
+  border-color: var(--border);
+  color: var(--text);
+  font-weight: 500;
+  text-transform: capitalize;
+  box-shadow: none;
+}
+.fc .fc-button-primary:hover {
+  background: color-mix(in srgb, var(--elevated) 80%, var(--text) 10%);
+  border-color: var(--border);
+  color: var(--text);
+}
+.fc .fc-button-primary:disabled {
+  background: var(--elevated);
+  border-color: var(--border);
+  opacity: 0.45;
+}
+.fc .fc-button-primary:not(:disabled):active,
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.fc .fc-button:focus,
+.fc .fc-button-primary:focus {
+  box-shadow: none;
+  outline: none;
+}
+
+/* Phones: stack the toolbar, shrink title + buttons (was way too big) */
+@media (max-width: 640px) {
+  .fc {
+    font-size: 0.8rem;
+  }
+  .fc .fc-toolbar.fc-header-toolbar {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+    margin-bottom: 0.75rem;
+  }
+  .fc .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+  .fc .fc-toolbar-title {
+    font-size: 0.95rem;
+  }
+  .fc .fc-button {
+    padding: 0.2rem 0.55rem;
+    font-size: 0.72rem;
+  }
 }

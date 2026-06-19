@@ -17,8 +17,8 @@ export default async function CalendarioPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900">Calendario de reservas</h1>
-        <p className="text-sm text-gray-500">{events.length} reservas</p>
+        <h1 className="font-display text-xl font-bold text-text">Calendario de reservas</h1>
+        <p className="text-sm text-muted">{events.length} reservas</p>
       </div>
       <CalendarView events={events} servicios={servicios} sinControlCapacidad={sinControlCapacidad} />
     </div>

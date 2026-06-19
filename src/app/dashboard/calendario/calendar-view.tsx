@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -33,10 +33,18 @@ export function CalendarView({
   sinControlCapacidad?: boolean;
 }) {
   const router = useRouter();
+  const calRef = useRef<FullCalendar>(null);
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useState<CalendarEvent | null>(null);
   const [createPrefill, setCreatePrefill] = useState<CreatePrefill | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // On phones, default to the day view (Google-Calendar-like). Runs after mount to avoid
+  // SSR mismatch; only changes the initial view, the user can still switch.
+  useEffect(() => {
+    const api = calRef.current?.getApi();
+    if (api && window.innerWidth < 640) api.changeView("timeGridDay");
+  }, []);
 
   const fcEvents = useMemo(
     () =>
@@ -97,10 +105,10 @@ export function CalendarView({
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row">
-      <div className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white p-3">
+      <div className="min-w-0 flex-1 rounded-xl border border-border bg-surface p-2 sm:p-3">
         <div className="mb-3 flex flex-wrap items-center gap-3">
           {ESTADO_ORDER.map((estado) => (
-            <span key={estado} className="flex items-center gap-1.5 text-xs text-gray-600">
+            <span key={estado} className="flex items-center gap-1.5 text-xs text-muted">
               <span
                 className="inline-block h-2.5 w-2.5 rounded-sm"
                 style={{ backgroundColor: ESTADO_META[estado].color }}
@@ -108,18 +116,19 @@ export function CalendarView({
               {ESTADO_META[estado].label}
             </span>
           ))}
-          <span className="ml-auto text-xs text-gray-400">
+          <span className="ml-auto hidden text-xs text-muted sm:inline">
             Arrastra para mover · selecciona un hueco para crear
           </span>
         </div>
 
         {error && (
-          <div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+          <div className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
             {error}
           </div>
         )}
 
         <FullCalendar
+          ref={calRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
           headerToolbar={{
@@ -153,7 +162,7 @@ export function CalendarView({
             setError(null);
             setCreatePrefill({ fecha: localParts(new Date()).fecha, hora: "09:00" });
           }}
-          className="mb-3 w-full rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          className="mb-3 w-full rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-strong"
         >
           + Nueva reserva
         </button>
@@ -166,7 +175,7 @@ export function CalendarView({
             onCancel={onCancel}
           />
         ) : (
-          <div className="rounded-lg border border-dashed border-gray-200 p-4 text-sm text-gray-400">
+          <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted">
             Haz clic en una reserva para ver los detalles.
           </div>
         )}
@@ -210,12 +219,12 @@ function DetailPanel({
   const meta = ESTADO_META[event.estado];
   const cancellable = event.estado === "confirmado" || event.estado === "pendiente_confirmacion_cliente";
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-xl border border-border bg-surface p-4">
       <div className="mb-3 flex items-start justify-between">
-        <span className="rounded px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: meta.color }}>
+        <span className="rounded px-2 py-0.5 text-xs font-medium text-on-accent" style={{ backgroundColor: meta.color }}>
           {meta.label}
         </span>
-        <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-700">
+        <button onClick={onClose} className="text-xs text-muted hover:text-text">
           Cerrar
         </button>
       </div>
@@ -232,7 +241,7 @@ function DetailPanel({
         <button
           onClick={() => onCancel(event.id)}
           disabled={pending}
-          className="mt-4 w-full rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+          className="mt-4 w-full rounded-lg border border-danger px-3 py-2 text-sm font-medium text-danger transition-colors hover:bg-danger/10 disabled:opacity-50"
         >
           {pending ? "…" : "Cancelar reserva"}
         </button>
@@ -269,14 +278,14 @@ function CreateModal({
   const [horaInicio, setHora] = useState(prefill.hora);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg"
+        className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 shadow-xl shadow-black/30"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Nueva reserva</h2>
+        <h2 className="font-display mb-4 text-lg font-bold text-text">Nueva reserva</h2>
         {sinControlCapacidad && (
-          <p className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <p className="mb-4 rounded-lg border border-secondary/40 bg-secondary/10 px-3 py-2 text-xs text-text">
             El control de disponibilidad de mesas no está activo: se permiten reservas
             solapadas. Revisa la capacidad manualmente.
           </p>
@@ -312,13 +321,13 @@ function CreateModal({
             </Field>
           </div>
           <div className="mt-2 flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="rounded-md px-3 py-2 text-sm text-gray-600 hover:bg-gray-100">
+            <button type="button" onClick={onClose} className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-elevated hover:text-text">
               Cancelar
             </button>
             <button
               type="submit"
               disabled={pending || !servicioId}
-              className="rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+              className="rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-strong disabled:opacity-50"
             >
               {pending ? "Creando…" : "Crear"}
             </button>
@@ -330,12 +339,12 @@ function CreateModal({
 }
 
 const inputCls =
-  "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none";
+  "w-full rounded-lg border border-border bg-elevated px-3 py-2 text-sm text-text placeholder-muted outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent [color-scheme:dark]";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-1 flex-col gap-1">
-      <span className="text-xs font-medium text-gray-600">{label}</span>
+      <span className="label-mono">{label}</span>
       {children}
     </label>
   );
@@ -344,8 +353,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-3">
-      <dt className="text-gray-500">{label}</dt>
-      <dd className="text-right font-medium text-gray-900">{value}</dd>
+      <dt className="text-muted">{label}</dt>
+      <dd className="text-right font-medium text-text">{value}</dd>
     </div>
   );
 }
