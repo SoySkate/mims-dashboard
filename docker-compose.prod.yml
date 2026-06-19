@@ -1,0 +1,30 @@
+# Production stack for the dashboard. Separate from docker-compose.yml (dev DB only).
+# NO Postgres here — production uses an EXTERNAL database (a test DB first, then the real one),
+# configured via DATABASE_URL in the .env file (created on the server, NOT committed).
+#
+# Caddy (already running for Chatwoot) reverse-proxies dashboard.mims.studio -> 127.0.0.1:3001.
+# Port 3000 is taken by Chatwoot, so we publish on 3001 (localhost only; Caddy terminates TLS).
+#
+# Deploy on the server:
+#   docker compose -f docker-compose.prod.yml up -d --build
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mims-dashboard:latest
+    container_name: mims_dashboard
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "127.0.0.1:3001:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/login"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

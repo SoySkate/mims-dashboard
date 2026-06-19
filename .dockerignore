@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.gitignore
+# secrets / env — never copy into the image (runtime env comes from docker-compose env_file)
+.env
+.env.*
+# dev-only DB assets (extensions, dump, seeds) — prod uses an external DB
+db
+# docs, compose, CI
+*.md
+Dockerfile
+docker-compose*.yml
+.dockerignore
+npm-debug.log*
+.vscode
+.idea
