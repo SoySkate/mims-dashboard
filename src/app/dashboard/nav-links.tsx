@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/dashboard/calendario", label: "Calendario" },
   { href: "/dashboard/mensajes", label: "Mensajes" },
   { href: "/dashboard/llamadas", label: "Llamadas" },
+  { href: "/dashboard/cuenta", label: "Cuenta" },
 ];
 
 export function NavLinks() {
