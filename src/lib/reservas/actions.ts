@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import * as z from "zod";
 import { db } from "@/lib/db/client";
-import { reservas, servicios } from "@/lib/db/schema";
+import { reservas, servicios, negocios } from "@/lib/db/schema";
 import { getNegocioId } from "@/lib/auth/dal";
 import { hasOverlap } from "./overlap";
+import { crearReservaMotor, MotorError } from "@/lib/motor/client";
 
 export type ActionResult = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -40,60 +41,53 @@ export async function createReserva(input: unknown): Promise<ActionResult> {
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
   }
-  const { clienteNombre, clienteTelefono, servicioId, fecha, horaInicio } = parsed.data;
+  // clienteTelefono is validated by the schema but not part of the Motor's create payload.
+  const { clienteNombre, servicioId, fecha, horaInicio } = parsed.data;
 
   if (fecha < todayStr()) return { ok: false, error: "No se puede reservar en el pasado" };
 
-  // Servicio must belong to THIS tenant.
+  // Servicio must belong to THIS tenant. The Motor matches by NAME, so we only need the name
+  // (this also doubles as the tenant-ownership check on the servicio id from the form).
   const srv = (
     await db
-      .select({
-        nombre: servicios.nombre,
-        duracionMinutos: servicios.duracionMinutos,
-        precio: servicios.precio,
-        profesional: servicios.profesional,
-      })
+      .select({ nombre: servicios.nombre })
       .from(servicios)
       .where(and(eq(servicios.id, servicioId), eq(servicios.negocioId, negocioId)))
       .limit(1)
   )[0];
   if (!srv) return { ok: false, error: "Servicio no encontrado" };
 
-  const start = horaInicio.length === 5 ? `${horaInicio}:00` : horaInicio;
-  const horaFin = toHms(toMinutes(horaInicio) + srv.duracionMinutos);
+  // Owner phone -> the Motor skips the auto-notification for owner-originated bookings.
+  const neg = (
+    await db
+      .select({ duenoTelefono: negocios.duenoTelefono })
+      .from(negocios)
+      .where(eq(negocios.id, negocioId))
+      .limit(1)
+  )[0];
 
-  if (
-    await hasOverlap({
+  // Write via the n8n Motor (validates capacity/overlap/hours + writes Postgres itself).
+  // clienteTelefono is collected by the form but the Motor's create payload doesn't take it.
+  try {
+    const r = await crearReservaMotor({
       negocioId,
+      servicio: srv.nombre,
       fecha,
-      horaInicio: start,
-      horaFin,
-      profesionalId: null,
-      profesional: srv.profesional,
-    })
-  ) {
-    return { ok: false, error: `Solapa con otra reserva de ${srv.profesional ?? "ese horario"}` };
+      hora: horaInicio.slice(0, 5), // HH:MM
+      nombre: clienteNombre,
+      fromNumber: neg?.duenoTelefono ?? undefined,
+    });
+    if (!r.ok) return r; // business rejection (OCUPADO, SIN_HUECOS, …) -> show the Motor's text
+  } catch (e) {
+    if (e instanceof MotorError) {
+      return { ok: false, error: "No se pudo crear la reserva (Motor no disponible). Inténtalo de nuevo." };
+    }
+    throw e;
   }
 
-  const [row] = await db
-    .insert(reservas)
-    .values({
-      negocioId,
-      clienteNombre,
-      clienteTelefono: clienteTelefono || null,
-      serviciosResumen: srv.nombre,
-      duracionMinutos: srv.duracionMinutos,
-      precioTotal: srv.precio,
-      fecha,
-      horaInicio: start,
-      horaFin,
-      profesional: srv.profesional,
-      estado: "confirmado", // owner-created from the dashboard
-    })
-    .returning({ id: reservas.id });
-
+  // The Motor wrote Postgres; re-read so the calendar reflects it (no id returned, not needed).
   revalidatePath("/dashboard/calendario");
-  return { ok: true, id: row.id };
+  return { ok: true };
 }
 
 // ---- move (drag) -----------------------------------------------------------
