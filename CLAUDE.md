@@ -152,6 +152,31 @@ same server as Chatwoot (`inbox.mims.studio`).
   (reached over the shared docker network). Automatic HTTPS works.
 - Cookies: `session.ts` sets `secure` only in production; TLS terminated at Caddy.
 
+### Deploy procedure (manual, step by step)
+
+1. **(PC)** commit + push to `main`.
+2. **(server, `/opt/mims-dashboard`)** pull with the read-only deploy key:
+   ```bash
+   GIT_SSH_COMMAND="ssh -i ~/.ssh/dashboard_deploy -o IdentitiesOnly=yes" git pull
+   ```
+3. **(server)** add any NEW env var by hand to `.env` (env does NOT travel via git). Use a
+   **double** `>>` (append) — a single `>` would TRUNCATE the whole `.env`:
+   ```bash
+   echo 'VAR=valor' >> .env
+   ```
+4. **(server) REBUILD WITHOUT CACHE — mandatory whenever code changed.** A plain
+   `up -d --build` can reuse stale layers and leave the container running OLD code (this bit us
+   once). Always:
+   ```bash
+   docker compose -f docker-compose.prod.yml build --no-cache dashboard
+   docker compose -f docker-compose.prod.yml up -d --force-recreate
+   ```
+5. **(server)** verify the var is actually inside the container:
+   ```bash
+   docker compose -f docker-compose.prod.yml exec dashboard printenv | grep VAR
+   ```
+6. Test in an **incognito** window at https://dashboard.mims.studio (avoids stale cache).
+
 ### Pending (to reach REAL production)
 
 - Point `DATABASE_URL` at the **real `mims_app` DB** (it lives on the OTHER server,
