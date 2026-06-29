@@ -144,9 +144,12 @@ same server as Chatwoot (`inbox.mims.studio`).
 - Repo cloned at `/opt/mims-dashboard`, pulled via a read-only SSH **deploy key**
   (`~/.ssh/dashboard_deploy`). Deploy is **manual**: `git pull` →
   `docker compose -f docker-compose.prod.yml up -d --build`.
-- **DB is a DEV/TEST copy**, not real production: Postgres container `mims-dashboard-db` on
-  docker network `mims-dashboard-net`, loaded with `db/extensions.sql` + `db/dump.sql` +
-  `db/users.sql` + `db/users-seed.sql` (demo logins `<slug>@demo.mims` / `demo1234`).
+- **DB: the dashboard now reads the REAL `mims_app` DB** (on `core.mims.studio`, reached over
+  the network from the inbox server) — confirmed: reservas created by the n8n Motor show up in
+  the dashboard. Real per-client logins live there (`db/users-prod.sql`, e.g.
+  `tasqueta@mims.studio`, `dentos@mims.studio`). A throwaway test DB (`mims-dashboard-db` on
+  `mims-dashboard-net`, loaded from `db/dump.sql` + demo logins) still exists for experiments
+  but is NOT what production points at.
 - Caddy: Chatwoot's Caddy (`mims-chatwoot-caddy-1`) was joined to `mims-dashboard-net`; its
   Caddyfile got a `dashboard.mims.studio` block → `reverse_proxy mims_dashboard:3000`
   (reached over the shared docker network). Automatic HTTPS works.
@@ -177,13 +180,11 @@ same server as Chatwoot (`inbox.mims.studio`).
    ```
 6. Test in an **incognito** window at https://dashboard.mims.studio (avoids stale cache).
 
-### Pending (to reach REAL production)
+### Real production status
 
-- Point `DATABASE_URL` at the **real `mims_app` DB** (it lives on the OTHER server,
-  `core.mims.studio`) instead of the test DB.
-- Create the `users` table in `mims_app` + real per-client users (not demo logins).
-- Solve network access between `inbox` and `core` for that DB connection.
-- Auto-deploy on push (GitHub Actions) — currently manual.
+- DONE: `DATABASE_URL` points at the real `mims_app` DB; `users` table + real per-client logins
+  created there; inbox↔core network access for the DB connection working.
+- Still pending: auto-deploy on push (GitHub Actions) — deploy is currently manual.
 
 ## Current status
 
