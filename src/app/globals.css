@@ -155,6 +155,33 @@
   outline: none;
 }
 
+/* "+N más" link + its popover (themed; default is white -> unreadable on dark) */
+.fc .fc-more-link {
+  color: var(--accent);
+  font-weight: 500;
+}
+.fc .fc-more-link:hover {
+  color: var(--accent-strong);
+}
+.fc .fc-popover {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.fc .fc-popover-header {
+  background: var(--elevated);
+  color: var(--text);
+}
+.fc .fc-popover-body {
+  background: var(--surface);
+}
+.fc .fc-popover-close {
+  color: var(--muted);
+  opacity: 1;
+}
+
 /* Phones: stack the toolbar, shrink title + buttons (was way too big) */
 @media (max-width: 640px) {
   .fc {

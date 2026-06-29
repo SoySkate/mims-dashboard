@@ -144,6 +144,11 @@ export function CalendarView({
           allDaySlot={false}
           height="auto"
           expandRows
+          // Many bookings at the same time (restaurant): cap side-by-side columns and roll the
+          // rest into a "+N más" popover instead of shrinking events to unreadable slivers.
+          slotEventOverlap={false}
+          eventMaxStack={3}
+          dayMaxEvents={true}
           selectable
           select={onSelect}
           editable
