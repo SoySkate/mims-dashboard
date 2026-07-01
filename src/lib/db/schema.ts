@@ -77,6 +77,7 @@ export const negocios = pgTable("negocios", {
 	chatwootAccountId: text("chatwoot_account_id"),
 	chatwootInboxId: text("chatwoot_inbox_id"),
 	chatwootInboxIdLlamadas: text("chatwoot_inbox_id_llamadas"),
+	vozActiva: boolean("voz_activa").default(true).notNull(),
 	agenteActivo: boolean("agente_activo").default(true).notNull(),
 }, (table) => [
 	index("idx_negocios_phone_number_id").using("btree", table.phoneNumberId.asc().nullsLast().op("text_ops")).where(sql`(activo = true)`),

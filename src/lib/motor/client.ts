@@ -98,3 +98,46 @@ export async function crearReservaMotor(p: CrearReservaPayload): Promise<MotorRe
   if (response.startsWith(CONFIRMADO_PREFIX)) return { ok: true };
   return { ok: false, error: response }; // rejection: surface the Motor's text
 }
+
+/**
+ * Toggle the voice bot via the Motor (fn "toggle_voz"). The Motor flips Telnyx call
+ * forwarding AND writes negocios.voz_activa — the dashboard must NOT write voz_activa itself.
+ * The Motor validates `from_number` is the owner (es_dueno gate); a mismatch is rejected.
+ * Throws MotorError on any non-2xx (or network failure) so the caller can revert the UI.
+ */
+export async function toggleVozMotor(p: {
+  negocioId: string;
+  activa: boolean; // true = switch on -> "activar"; false = off -> "desactivar"
+  fromNumber?: string; // owner phone (negocios.dueno_telefono)
+}): Promise<void> {
+  const url = base();
+  if (!url) throw new MotorError("NO_CONFIG", "Motor no configurado (falta N8N_MOTOR_URL)");
+
+  const body = {
+    fn: "toggle_voz",
+    negocio_id: p.negocioId,
+    accion: p.activa ? "activar" : "desactivar",
+    ...(p.fromNumber ? { from_number: p.fromNumber } : {}),
+  };
+
+  const tk = token();
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        ...(tk ? { Authorization: `Bearer ${tk}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    throw new MotorError("NETWORK", `No se pudo contactar el Motor: ${(e as Error).message}`);
+  }
+
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    throw new MotorError(`HTTP_${res.status}`, `Motor HTTP ${res.status} ${t.slice(0, 200)}`);
+  }
+}

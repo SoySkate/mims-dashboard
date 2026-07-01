@@ -4,7 +4,9 @@ import { getNegocioChatwootCalls } from "@/lib/chatwoot/tenant";
 import { listConversations, ALL_STATUSES } from "@/lib/chatwoot/conversations";
 import { getThread, type ThreadMessage } from "@/lib/chatwoot/messages";
 import { ChatwootError } from "@/lib/chatwoot/client";
+import { getVozActiva } from "@/lib/negocio/voz";
 import { Poller } from "../mensajes/poller";
+import { VozToggle } from "./voz-toggle";
 
 // READ-ONLY calls screen. Reads a SEPARATE Chatwoot inbox (Retell transcripts via n8n),
 // reusing the existing Chatwoot client. No reply, no handoff, no mark-as-read.
@@ -14,6 +16,7 @@ export default async function LlamadasPage({
   searchParams: Promise<{ conv?: string }>;
 }) {
   const negocioId = await getNegocioId();
+  const vozActiva = await getVozActiva(negocioId);
   const cfg = await getNegocioChatwootCalls(negocioId);
 
   // not configured, OR the configured account/inbox is unreachable (404) -> same graceful state.
@@ -30,7 +33,10 @@ export default async function LlamadasPage({
   if (!cfg || conversations === null) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="font-display text-xl font-bold text-text">Llamadas</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="font-display text-xl font-bold text-text">Llamadas</h1>
+          <VozToggle initial={vozActiva} />
+        </div>
         <div className="rounded-xl border border-dashed border-border bg-surface p-6 text-sm text-muted">
           El inbox de llamadas no está configurado para este negocio en Chatwoot.
         </div>
@@ -62,9 +68,12 @@ export default async function LlamadasPage({
   return (
     <div className="flex flex-col gap-4">
       <Poller />
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex items-start justify-between gap-3">
         <h1 className="font-display text-xl font-bold text-text">Llamadas</h1>
-        {anyCoste && <span className="label-mono">Coste total · ${totalCoste.toFixed(2)}</span>}
+        <div className="flex flex-col items-end gap-1">
+          <VozToggle initial={vozActiva} />
+          {anyCoste && <span className="label-mono">Coste total · ${totalCoste.toFixed(2)}</span>}
+        </div>
       </div>
 
       {conversations.length === 0 ? (

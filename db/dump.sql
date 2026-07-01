@@ -56,6 +56,7 @@ CREATE TABLE "public"."negocios" (
     "chatwoot_account_id" text,
     "chatwoot_inbox_id" text,
     "chatwoot_inbox_id_llamadas" text,
+    "voz_activa" boolean DEFAULT true NOT NULL,
     "agente_activo" boolean DEFAULT true NOT NULL,
     CONSTRAINT "negocios_pkey" PRIMARY KEY ("id")
 )

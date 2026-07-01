@@ -4,9 +4,11 @@ import { getNegocioChatwoot } from "@/lib/chatwoot/tenant";
 import { listConversations, markConversationRead } from "@/lib/chatwoot/conversations";
 import { getThread, type ThreadMessage } from "@/lib/chatwoot/messages";
 import { ChatwootError } from "@/lib/chatwoot/client";
+import { getAgenteActivo } from "@/lib/negocio/agente";
 import { Poller } from "./poller";
 import { ReplyBox } from "./reply-box";
 import { HandoffButton } from "./handoff-button";
+import { AgenteToggle } from "./agente-toggle";
 
 export default async function MensajesPage({
   searchParams,
@@ -14,12 +16,16 @@ export default async function MensajesPage({
   searchParams: Promise<{ conv?: string }>;
 }) {
   const negocioId = await getNegocioId();
+  const agenteActivo = await getAgenteActivo(negocioId);
   const cfg = await getNegocioChatwoot(negocioId);
 
   if (!cfg) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="font-display text-xl font-bold text-text">Mensajes de WhatsApp</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="font-display text-xl font-bold text-text">Mensajes de WhatsApp</h1>
+          <AgenteToggle initial={agenteActivo} />
+        </div>
         <div className="rounded-xl border border-dashed border-border bg-surface p-6 text-sm text-muted">
           WhatsApp no está configurado para este negocio en Chatwoot.
         </div>
@@ -55,7 +61,10 @@ export default async function MensajesPage({
   return (
     <div className="flex flex-col gap-4">
       <Poller />
-      <h1 className="font-display text-xl font-bold text-text">Mensajes de WhatsApp</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="font-display text-xl font-bold text-text">Mensajes de WhatsApp</h1>
+        <AgenteToggle initial={agenteActivo} />
+      </div>
 
       {conversations.length === 0 ? (
         <p className="text-sm text-muted">No hay conversaciones activas.</p>
