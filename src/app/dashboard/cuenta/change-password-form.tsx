@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { changePassword, type ChangePasswordState } from "@/lib/auth/actions";
+import { PasswordInput } from "@/components/password-input";
 
 export function ChangePasswordForm() {
   const [state, action, pending] = useActionState<ChangePasswordState, FormData>(changePassword, undefined);
@@ -46,13 +47,12 @@ function Field({ id, label, autoComplete }: { id: string; label: string; autoCom
       <label htmlFor={id} className="label-mono">
         {label}
       </label>
-      <input
+      <PasswordInput
         id={id}
         name={id}
-        type="password"
         autoComplete={autoComplete}
         required
-        className="rounded-lg border border-border bg-elevated px-3 py-2.5 text-sm text-text placeholder-muted outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
+        className="w-full rounded-lg border border-border bg-elevated px-3 py-2.5 text-sm text-text placeholder-muted outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
       />
     </div>
   );

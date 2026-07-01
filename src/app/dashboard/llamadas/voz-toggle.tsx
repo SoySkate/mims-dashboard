@@ -44,8 +44,8 @@ export function VozToggle({ initial }: { initial: boolean }) {
           }`}
         >
           <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-text transition-transform ${
-              activa ? "translate-x-5" : "translate-x-0.5"
+            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-text transition-transform ${
+              activa ? "translate-x-5" : "translate-x-0"
             }`}
           />
         </button>
